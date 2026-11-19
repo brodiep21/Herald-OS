@@ -10,6 +10,7 @@ import { interruptChat, runSlash, sendPrompt } from '../../store/chat.ts'
 import type { Artifact } from '../../store/missions.ts'
 import { $activeSpace } from '../../store/spaces.ts'
 import { Markdown } from '../chat/Markdown.tsx'
+import { AgentStrip } from '../chat/AgentStrip.tsx'
 import { $chatArtifacts, $selectedArtifact, artifactsInWindow, dayLabel, formatTime, selectArtifact } from './artifact-store.ts'
 import { ArtifactCard } from './ArtifactCard.tsx'
 import { HermesComposer } from './HermesComposer.tsx'
@@ -100,6 +101,7 @@ export function Conversation({ chat, online }: { chat: ChatState | null; online:
       {chat ? <Transcript chat={chat} bot={bot} online={online} /> : <Hero bot={bot} online={online} />}
 
       <div className="shrink-0 px-4 pb-4 pt-2">
+        <AgentStrip />
         <HermesComposer autoFocus disabled={!online} streaming={chat?.streaming} placeholder={online ? `Ask ${bot.name} anything…` : 'Connecting to Hermes…'} onSubmit={send} onInterrupt={() => void interruptChat()} />
       </div>
     </div>

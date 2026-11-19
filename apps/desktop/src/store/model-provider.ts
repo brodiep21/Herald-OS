@@ -96,9 +96,15 @@ interface ModelSetResponse {
 }
 
 /** A change Hermes made, or one it holds until the person confirms the warning (a model far pricier than most). */
-export type ModelChange = { ok: true; provider: string; model: string } | { ok: false; provider: string; model: string; confirm: string }
+export type ModelChange =
+  | { ok: true; provider: string; model: string; warning?: string }
+  | { ok: false; provider: string; model: string; confirm: string }
 
-/** Make `provider` and `model` Hermes's default and move the open chat to them; `confirmed` accepts a price warning. */
+/**
+ * Make `provider` and `model` Hermes's default and move the open chat to them; `confirmed` accepts a price warning.
+ * A switch that does not stick reports `warning` instead of looking successful: the saved default and the open
+ * chat are separate in Hermes, so either one can keep the model it had.
+ */
 export async function setHermesModel(provider: string, model: string, confirmed = false): Promise<ModelChange> {
   const result = await rest.post<ModelSetResponse | null>('/api/model/set', { scope: 'main', provider, model, confirm_expensive_model: confirmed })
 
@@ -107,18 +113,40 @@ export async function setHermesModel(provider: string, model: string, confirmed 
   }
 
   const saved = { provider: result?.provider || provider, model: result?.model || model }
+  let warning: string | undefined
   const chat = $activeChat.get()
 
   if (chat) {
     // A conversation keeps the model it started with; this one follows the change. The default is
     // saved either way, so a chat that cannot switch now still leaves new ones on the new model.
-    await gatewayRequest('config.set', { session_id: chat.sessionId, key: 'model', value: `${saved.model} --provider ${saved.provider}`, confirm_expensive_model: true }).catch(() => undefined)
+    // A refusal here used to be swallowed, which read as "it stays on the old model" with no reason.
+    try {
+      await gatewayRequest('config.set', { session_id: chat.sessionId, key: 'model', value: `${saved.model} --provider ${saved.provider}`, confirm_expensive_model: true })
+    } catch (error) {
+      const kept = `${chat.info.provider ?? 'its provider'} · ${chat.info.model ?? 'its model'}`
+      warning = `New chats use ${saved.provider} · ${saved.model}, but this one stayed on ${kept}: ${error instanceof Error ? error.message : String(error)}`
+    }
   }
 
   providersChanged()
   await refreshHermesAuth()
 
-  return { ok: true, ...saved }
+  // Read the default back: Hermes can accept the request and keep what it had (an unknown model id,
+  // a provider that is not signed in), and that must not look like a successful switch.
+  try {
+    const after = await gatewayRequest('model.options', { include_unconfigured: false })
+    const keptModel = after.model?.trim()
+    const keptProvider = after.provider?.trim()
+
+    if (keptModel && keptModel !== saved.model) {
+      const kept = `${keptProvider ?? 'provider'} · ${keptModel}`
+      warning = warning ? `${warning} Hermes also kept ${kept} as the default.` : `Hermes kept ${kept} as the default instead of ${saved.provider} · ${saved.model}.`
+    }
+  } catch {
+    // The read-back is a check, not the change: its failure leaves the switch as Hermes reported it.
+  }
+
+  return { ok: true, ...saved, ...(warning ? { warning } : {}) }
 }
 
 /** Switch Hermes to a provider that is set up: on its saved model when it already is the provider, else on Hermes's recommendation for it. */

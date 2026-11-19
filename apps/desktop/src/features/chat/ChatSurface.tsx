@@ -6,6 +6,7 @@ import { botByProfile } from '../../lib/bots.ts'
 import { $bots } from '../../store/bots.ts'
 import { $activeChat, interruptChat, runSlash, sendPrompt } from '../../store/chat.ts'
 import { $connection } from '../../store/gateway.ts'
+import { AgentStrip } from './AgentStrip.tsx'
 import { Composer } from './Composer.tsx'
 import { SessionList } from './SessionList.tsx'
 import { Transcript } from './Transcript.tsx'
@@ -65,6 +66,7 @@ export function ChatSurface() {
 
         <div className="shrink-0 px-6 pb-5">
           <div className="mx-auto max-w-3xl">
+            <AgentStrip />
             <Composer
               autoFocus
               disabled={!online}

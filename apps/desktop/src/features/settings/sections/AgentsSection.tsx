@@ -221,6 +221,14 @@ function PreferredModelRow({ ready }: { ready: boolean }) {
 
       markSaved()
       const name = nameOf(change.provider)
+
+      if (change.warning) {
+        // The switch was accepted but did not fully take: say what actually answers now.
+        notify({ title: t('settings.agents.modelChanged'), body: change.warning, level: 'warn' })
+
+        return
+      }
+
       notify({ title: t('settings.agents.modelChanged'), body: t(chat ? 'settings.agents.modelChangedChat' : 'settings.agents.modelChangedNew', { provider: name, model: change.model }), level: 'success' })
     } catch (error) {
       notify({ title: t('settings.agents.modelFailed'), body: errorText(error), level: 'error' })

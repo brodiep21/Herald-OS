@@ -9,6 +9,7 @@ import { $sidebar, SIDEBAR_COLLAPSED, SIDEBAR_MAX, SIDEBAR_MIN, SIDEBAR_SNAP, se
 import { $activeSpace, $spaces, addSpace, setActiveSpace, spaceLabel } from '../store/spaces.ts'
 import { $page, showPage } from '../store/windows.ts'
 import { appName, PAGES } from './apps.ts'
+import { ChatsSection } from './ChatsSection.tsx'
 
 /** The persistent left rail of the main Hermes window: identity, pages, spaces. Resizable; collapses to icons. */
 export function Sidebar() {
@@ -208,6 +209,8 @@ export function Sidebar() {
           </div>
         </>
       )}
+
+      <ChatsSection collapsed={collapsed} />
 
       <button
         type="button"
